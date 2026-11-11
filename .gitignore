@@ -1,0 +1,5 @@
+.env.*
+!.env.devnet
+deployments/devnet.env
+
+node_modules/
