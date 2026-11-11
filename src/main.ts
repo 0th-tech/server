@@ -1,5 +1,5 @@
 import { Account, RpcProvider, logger } from "starknet";
-import { isFelts, relay } from "./relay.ts";
+import { isFelts, isIdentity, relay } from "./relay.ts";
 import { saltFor } from "./salt.ts";
 import { need, serve } from "./serve.ts";
 
@@ -15,6 +15,8 @@ const relayConfig = {
     address: need("RELAYER_ACCOUNT"),
     signer: need("RELAYER_PRIVATE_KEY"),
   }),
+  registry: need("REGISTRY"),
+  verifier: need("VERIFIER"),
   accountClassHash: need("ACCOUNT_CLASS_HASH"),
   nodeUrl: rpcUrl,
   devnet: Boolean(process.env.DEVNET),
@@ -22,12 +24,11 @@ const relayConfig = {
 
 serve(
   {
-    "/relay": async ({ constructorCalldata, proof }) => {
-      if (!isFelts(constructorCalldata) || !isFelts(proof))
-        throw new Error(
-          "constructorCalldata and proof must be arrays of felts",
-        );
-      return { address: await relay(relayConfig, constructorCalldata, proof) };
+    "/relay": async ({ identity, proof }) => {
+      if (!isIdentity(identity))
+        throw new Error("identity must be a BN254 field element");
+      if (!isFelts(proof)) throw new Error("proof must be an array of felts");
+      return { address: await relay(relayConfig, identity, proof) };
     },
     "/salt": async ({ jwt }) => {
       if (typeof jwt !== "string") throw new Error("jwt must be a string");

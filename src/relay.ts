@@ -1,21 +1,28 @@
 import {
   Account,
   type Call,
+  CallData,
   RpcError,
   addAddressPadding,
+  cairo,
   constants,
   defaultDeployer,
   hash,
 } from "starknet";
 
+const isInteger = (x: unknown): x is string =>
+  typeof x === "string" && /^(0x[0-9a-f]+|\d+)$/i.test(x);
+
 export const isFelts = (value: unknown): value is string[] =>
   Array.isArray(value) &&
-  value.every(
-    (x) =>
-      typeof x === "string" &&
-      /^(0x[0-9a-f]+|\d+)$/i.test(x) &&
-      BigInt(x) < constants.PRIME,
-  );
+  value.every((x) => isInteger(x) && BigInt(x) < constants.PRIME);
+
+// The identity hash is a BN254 field element, so no proof can carry a larger one
+const BN254_ORDER =
+  21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+
+export const isIdentity = (value: unknown): value is string =>
+  isInteger(value) && BigInt(value) < BN254_ORDER;
 
 // New accounts are funded here to cover deployment fees. Devnet only
 const devnetMint = (nodeUrl: string, address: string) =>
@@ -32,6 +39,8 @@ const devnetMint = (nodeUrl: string, address: string) =>
 
 type RelayConfig = {
   relayer: Account;
+  registry: string;
+  verifier: string;
   accountClassHash: string;
   nodeUrl: string;
   devnet: boolean;
@@ -50,10 +59,24 @@ const udcAddress = (accountClassHash: string, constructorCalldata: string[]) =>
 
 // Every login registers a session key, only the first one deploys
 export async function relay(
-  { relayer, accountClassHash, nodeUrl, devnet }: RelayConfig,
-  constructorCalldata: string[],
+  {
+    relayer,
+    registry,
+    verifier,
+    accountClassHash,
+    nodeUrl,
+    devnet,
+  }: RelayConfig,
+  identity: string,
   proof: string[],
 ) {
+  // The account trusts the server's own registry and verifier, so a caller cannot make the relayer
+  // deploy an account that accepts any proof
+  const constructorCalldata = CallData.compile([
+    registry,
+    verifier,
+    cairo.uint256(identity),
+  ]);
   const address = udcAddress(accountClassHash, constructorCalldata);
   // A node error other than CONTRACT_NOT_FOUND is thrown: deploying an existing account reverts
   const deployed = await relayer.provider.getClassHashAt(address).catch((e) => {
