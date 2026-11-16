@@ -23,3 +23,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: make typecheck
       - run: make fmt-check
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make image
