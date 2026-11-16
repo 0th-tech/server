@@ -11,6 +11,9 @@ const seed = need("SEED");
 const clientId = need("GOOGLE_CLIENT_ID");
 const circuit = await loadCircuit(need("CIRCUIT_DIR"));
 
+// The account registers a session key for up to 30 days
+const MAX_SESSION = 30 * 24 * 3600;
+
 const relayConfig = {
   relayer: new Account({
     provider: new RpcProvider({ nodeUrl: rpcUrl }),
@@ -42,7 +45,7 @@ serve(
       const session = [publicKey, expiry, secret];
       if (!isFelts(session))
         throw new Error("publicKey, expiry and secret must be felts");
-      const { sub, providerKey } = await readLetter(clientId, jwt);
+      const { sub, providerKey } = await readLetter(clientId, jwt, MAX_SESSION);
       return prove(
         circuit,
         { jwt, providerKey },

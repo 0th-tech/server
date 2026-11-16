@@ -8,11 +8,16 @@ const googleKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
 
-// Checks the provider's signature on the letter and returns the user's sub and the signing key
-export async function readLetter(clientId: string, jwt: string) {
+// Checks the provider's signature on the letter and returns the user's sub and the signing key.
+export async function readLetter(
+  clientId: string,
+  jwt: string,
+  expiredFor = 0,
+) {
   const { payload, key } = await jwtVerify(jwt, googleKeys, {
     issuer: GOOGLE_ISS,
     audience: clientId,
+    clockTolerance: expiredFor,
   });
   if (typeof payload.sub !== "string") throw new Error("letter has no sub");
   return { sub: payload.sub, providerKey: await exportJWK(key) };
