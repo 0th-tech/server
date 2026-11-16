@@ -3,3 +3,4 @@
 deployments/devnet.env
 
 node_modules/
+target/

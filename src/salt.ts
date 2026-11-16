@@ -1,5 +1,5 @@
 import { hkdfSync } from "node:crypto";
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, exportJWK, jwtVerify } from "jose";
 
 const GOOGLE_ISS = "https://accounts.google.com";
 
@@ -8,20 +8,18 @@ const googleKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
 
-export async function saltFor(seed: string, clientId: string, jwt: string) {
-  const { payload } = await jwtVerify(jwt, googleKeys, {
+// Checks the provider's signature on the letter and returns the user's sub and the signing key
+export async function readLetter(clientId: string, jwt: string) {
+  const { payload, key } = await jwtVerify(jwt, googleKeys, {
     issuer: GOOGLE_ISS,
     audience: clientId,
   });
   if (typeof payload.sub !== "string") throw new Error("letter has no sub");
+  return { sub: payload.sub, providerKey: await exportJWK(key) };
+}
 
-  // Binds the salt to the provider and the dapp, so one seed can serve several of either
-  const salt = hkdfSync(
-    "sha256",
-    seed,
-    `${GOOGLE_ISS}|${clientId}`,
-    payload.sub,
-    31,
-  );
+export function saltFrom(seed: string, clientId: string, sub: string) {
+  // The same seed gives a different salt for each dapp and each login provider
+  const salt = hkdfSync("sha256", seed, `${GOOGLE_ISS}|${clientId}`, sub, 31);
   return BigInt(`0x${Buffer.from(salt).toString("hex")}`);
 }

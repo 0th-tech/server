@@ -1,16 +1,28 @@
-.PHONY: start image up down logs typecheck fmt fmt-check
+.PHONY: circuit start image up down logs typecheck fmt fmt-check
 
 NETWORK ?= devnet
 
 IMAGE ?= 0th-server
 PORT ?= 8787
 
+CIRCUIT_VERSION ?= v0.1.0
+CIRCUIT_RELEASE = https://github.com/0th-tech/circuit/releases/download/$(CIRCUIT_VERSION)
+CIRCUIT_DIR ?= target/circuit
+
 -include .env.$(NETWORK)
 -include deployments/$(NETWORK).env
 export
 
+# target/circuit/{login.json,vk}, from the circuit's release. The image holds its own copy
+circuit:
+	mkdir -p target/circuit
+	for file in login.json vk; do \
+		curl -fsSL $(CIRCUIT_RELEASE)/$$file -o target/circuit/$$file || exit 1; \
+	done
+
 # Network targets: make <target> NETWORK=<devnet|sepolia|mainnet>, devnet by default
 
+# Needs make circuit once. /prove calls bb, which the image holds and a host may lack
 start:
 	pnpm start
 

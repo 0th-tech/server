@@ -1,6 +1,7 @@
 import { Account, RpcProvider, logger } from "starknet";
+import { loadCircuit, prove } from "./prove.ts";
 import { isFelts, isIdentity, relay } from "./relay.ts";
-import { saltFor } from "./salt.ts";
+import { readLetter, saltFrom } from "./salt.ts";
 import { need, serve } from "./serve.ts";
 
 logger.setLogLevel("ERROR");
@@ -8,6 +9,7 @@ logger.setLogLevel("ERROR");
 const rpcUrl = need("RPC_URL");
 const seed = need("SEED");
 const clientId = need("GOOGLE_CLIENT_ID");
+const circuit = await loadCircuit(need("CIRCUIT_DIR"));
 
 const relayConfig = {
   relayer: new Account({
@@ -32,7 +34,25 @@ serve(
     },
     "/salt": async ({ jwt }) => {
       if (typeof jwt !== "string") throw new Error("jwt must be a string");
-      return { salt: String(await saltFor(seed, clientId, jwt)) };
+      const { sub } = await readLetter(clientId, jwt);
+      return { salt: String(saltFrom(seed, clientId, sub)) };
+    },
+    "/prove": async ({ jwt, publicKey, expiry, secret }) => {
+      if (typeof jwt !== "string") throw new Error("jwt must be a string");
+      const session = [publicKey, expiry, secret];
+      if (!isFelts(session))
+        throw new Error("publicKey, expiry and secret must be felts");
+      const { sub, providerKey } = await readLetter(clientId, jwt);
+      return prove(
+        circuit,
+        { jwt, providerKey },
+        {
+          publicKey: session[0]!,
+          expiry: session[1]!,
+          secret: session[2]!,
+          salt: saltFrom(seed, clientId, sub),
+        },
+      );
     },
   },
   Number(process.env.PORT ?? 8787),

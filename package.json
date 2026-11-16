@@ -9,7 +9,10 @@
     "fmt-check": "prettier --check src"
   },
   "dependencies": {
+    "@noir-lang/noir_js": "1.0.0-beta.16",
+    "garaga": "1.1.0",
     "jose": "^6.2.12",
+    "noir-jwt": "0.4.5",
     "starknet": "10.8.0"
   },
   "devDependencies": {
