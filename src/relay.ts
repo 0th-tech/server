@@ -107,6 +107,8 @@ export async function relay(
   });
 
   const { transaction_hash } = await relayer.execute(calls);
-  await relayer.provider.waitForTransaction(transaction_hash);
+  await relayer.provider.waitForTransaction(transaction_hash, {
+    retryInterval: 1000,
+  });
   return address;
 }
