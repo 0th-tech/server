@@ -1,7 +1,7 @@
 import { Account, RpcProvider, logger } from "starknet";
 import { loadCircuit, prove } from "./prove.ts";
 import { isFelts, isIdentity, relay } from "./relay.ts";
-import { readLetter, saltFrom } from "./salt.ts";
+import { googleKeys, readLetter, saltFrom } from "./salt.ts";
 import { need, serve } from "./serve.ts";
 
 logger.setLogLevel("ERROR");
@@ -37,7 +37,7 @@ serve(
     },
     "/salt": async ({ jwt }) => {
       if (typeof jwt !== "string") throw new Error("jwt must be a string");
-      const { sub } = await readLetter(clientId, jwt);
+      const { sub } = await readLetter(googleKeys, clientId, jwt);
       return { salt: String(saltFrom(seed, clientId, sub)) };
     },
     "/prove": async ({ jwt, publicKey, expiry, secret }) => {
@@ -45,7 +45,12 @@ serve(
       const session = [publicKey, expiry, secret];
       if (!isFelts(session))
         throw new Error("publicKey, expiry and secret must be felts");
-      const { sub, providerKey } = await readLetter(clientId, jwt, MAX_SESSION);
+      const { sub, providerKey } = await readLetter(
+        googleKeys,
+        clientId,
+        jwt,
+        MAX_SESSION,
+      );
       return prove(
         circuit,
         { jwt, providerKey },

@@ -1,20 +1,26 @@
 import { hkdfSync } from "node:crypto";
-import { createRemoteJWKSet, exportJWK, jwtVerify } from "jose";
+import {
+  type JWTVerifyGetKey,
+  createRemoteJWKSet,
+  exportJWK,
+  jwtVerify,
+} from "jose";
 
 const GOOGLE_ISS = "https://accounts.google.com";
 
 // Module level so the keys are fetched once, not per request
-const googleKeys = createRemoteJWKSet(
+export const googleKeys = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
 
-// Checks the provider's signature on the letter and returns the user's sub and the signing key.
+// Checks the provider's signature on the letter and returns the user's sub and the signing key
 export async function readLetter(
+  keys: JWTVerifyGetKey,
   clientId: string,
   jwt: string,
   expiredFor = 0,
 ) {
-  const { payload, key } = await jwtVerify(jwt, googleKeys, {
+  const { payload, key } = await jwtVerify(jwt, keys, {
     issuer: GOOGLE_ISS,
     audience: clientId,
     clockTolerance: expiredFor,

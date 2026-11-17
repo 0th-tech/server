@@ -1,4 +1,4 @@
-.PHONY: circuit start image up down logs typecheck fmt fmt-check
+.PHONY: circuit start image up down logs test typecheck fmt fmt-check
 
 NETWORK ?= devnet
 
@@ -41,6 +41,9 @@ down:
 
 logs:
 	docker logs -f server-$(NETWORK)
+
+test:
+	pnpm test
 
 typecheck:
 	pnpm run typecheck
