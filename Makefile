@@ -1,6 +1,9 @@
-.PHONY: circuit start image up down logs test typecheck fmt fmt-check
+.PHONY: start image up down logs test typecheck fmt fmt-check
 
 NETWORK ?= devnet
+
+# A download that fails leaves no partial file behind
+.DELETE_ON_ERROR:
 
 IMAGE ?= 0th-server
 PORT ?= 8787
@@ -13,17 +16,16 @@ CIRCUIT_DIR ?= target/circuit
 -include deployments/$(NETWORK).env
 export
 
-# target/circuit/{login.json,vk}, from the circuit's release. The image holds its own copy
-circuit:
-	mkdir -p target/circuit
-	for file in login.json vk; do \
-		curl -fsSL $(CIRCUIT_RELEASE)/$$file -o target/circuit/$$file || exit 1; \
-	done
+# A file from the circuit's release, downloaded again whenever this Makefile changes, since it pins the version.
+# The image holds its own copy
+target/circuit/%: Makefile
+	mkdir -p $(@D)
+	curl -fsSL $(CIRCUIT_RELEASE)/$* -o $@
 
 # Network targets: make <target> NETWORK=<devnet|sepolia|mainnet>, devnet by default
 
-# Needs make circuit once. /prove calls bb, which the image holds and a host may lack
-start:
+# /prove calls bb, which the image holds and a host may lack
+start: $(CIRCUIT_DIR)/login.json $(CIRCUIT_DIR)/vk
 	pnpm start
 
 image:
