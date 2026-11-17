@@ -33,7 +33,7 @@ image:
 up: image
 	docker rm -f server-$(NETWORK) 2>/dev/null || true
 	docker run -d --name server-$(NETWORK) --restart unless-stopped -p $(PORT):$(PORT) \
-		-e RPC_URL -e PORT -e DEVNET -e SEED -e GOOGLE_CLIENT_ID -e RELAYER_ACCOUNT -e RELAYER_PRIVATE_KEY \
+		-e RPC_URL -e PORT -e DEVNET -e SEED -e GOOGLE_CLIENT_ID -e JWKS_URL -e RELAYER_ACCOUNT -e RELAYER_PRIVATE_KEY \
 		-e REGISTRY -e VERIFIER -e ACCOUNT_CLASS_HASH $(IMAGE)
 
 down:
